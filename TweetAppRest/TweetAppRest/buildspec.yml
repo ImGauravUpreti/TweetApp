@@ -1,0 +1,26 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+  pre_build:
+    commands:
+      - echo "Entered the pre-build phase"
+      - aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin 271668025903.dkr.ecr.us-east-1.amazonaws.com
+  build:
+    commands:
+      - echo "Entered build phase"
+      - cd TweetAppRest
+      - mvn compile
+      - mvn clean package -Dmaven.test.skip=true
+      - echo " building docker image"
+      - docker build -t service/tweetapp .
+      - docker tag service/tweetapp 271668025903.dkr.ecr.us-east-1.amazonaws.com/service-registry:tweetapp
+  post_build:
+    commands:
+    - echo "Entered the post-build phase"
+    - docker push 271668025903.dkr.ecr.us-east-1.amazonaws.com/service-registry:tweetapp
+    - printf '[{"name":"tweetapp-container","imageUri":"%s"}]' 271668025903.dkr.ecr.us-east-1.amazonaws.com/service-registry:tweetapp > taskdefinition.json
+artifacts:
+  files:
+    - TweetAppRest/taskdefinition.json
